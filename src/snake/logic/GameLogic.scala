@@ -1,8 +1,7 @@
 package snake.logic
 
-import engine.random.{RandomGenerator, ScalaRandomGen}
-import snake.logic.GameLogic._
-import snake.logic.Point.{getCell, setCell}
+import engine.random.RandomGenerator
+import snake.logic.Point.getCell
 
 /** To implement Snake, complete the ``TODOs`` below.
  *
@@ -12,12 +11,19 @@ import snake.logic.Point.{getCell, setCell}
 class GameLogic(val random: RandomGenerator,
                 val gridDims : Dimensions) {
 
-  def gameOver: Boolean = false
+  var currentHead : Point = Point(0 , 0)
+  var currentDirection: Direction = East()
 
+  def gameOver: Boolean = false
 
   // TODO implement me
   def step(): Unit = {
+    currentHead.movePoint(currentDirection)
 
+    if (currentHead.x == GameLogic.DefaultGridDims.width && currentDirection == East()) currentHead.x = 0
+    else if (currentHead.x == -1 && currentDirection == West()) currentHead.x = 24
+    else if (currentHead.y == GameLogic.DefaultGridDims.height && currentDirection == South()) currentHead.y = 0
+    else if (currentHead.y == -1 && currentDirection == North()) currentHead.y = 24
   }
 
   // TODO implement me
@@ -25,16 +31,14 @@ class GameLogic(val random: RandomGenerator,
 
   // TODO implement me
   def changeDir(d: Direction): Unit = {
-    d match {
-      case East() => setCell(5, 3, SnakeHead(East()))
-      case North() => setCell(5, 3, SnakeHead(North()))
-      case West() => setCell(5, 3, SnakeHead(West()))
-      case South() => setCell(5, 3, SnakeHead(South()))
-    }
+    currentDirection = d
   }
 
   // TODO implement me
   def getCellType(p : Point): CellType = {
+
+    if (currentHead.x == p.x && currentHead.y == p.y) p.cell = SnakeHead(currentDirection)
+
     getCell(p)
   }
 

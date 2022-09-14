@@ -16,7 +16,9 @@ package snake.logic
  */
 sealed abstract class Direction {
   def opposite : Direction
+
 }
+
 
 case class East()   extends Direction  { def opposite : West   = West()  }
 case class North()  extends Direction  { def opposite : South  = South() }
