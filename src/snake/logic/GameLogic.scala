@@ -1,7 +1,8 @@
 package snake.logic
 
 import engine.random.RandomGenerator
-import snake.logic.Point.getCell
+
+import scala.collection.mutable.ArrayBuffer
 
 /** To implement Snake, complete the ``TODOs`` below.
  *
@@ -11,19 +12,46 @@ import snake.logic.Point.getCell
 class GameLogic(val random: RandomGenerator,
                 val gridDims : Dimensions) {
 
-  var currentHead : Point = Point(0 , 0)
+  var currentHead : Point = Point(2,0)
+  //TODO: These can be under "currentHead" or in the new "Snake" class? Also with the apple shit..
+  var bodyPoints: ArrayBuffer[Point] = new ArrayBuffer[Point]
+  bodyPoints += Point(0,0); bodyPoints += Point(1,0)
+  var bodyLength : Int = 2
+
   var currentDirection: Direction = East()
+  var applePoint : Point = Point(0,0)
+  var appleOnBoard: Boolean = false
+  var emptySize : Int = gridDims.width * gridDims.height - (bodyLength + 1)
+  var emptyPlaces: Vector[Point] = Vector[Point]()
+
 
   def gameOver: Boolean = false
 
   // TODO implement me
   def step(): Unit = {
-    currentHead.movePoint(currentDirection)
 
-    if (currentHead.x == GameLogic.DefaultGridDims.width && currentDirection == East()) currentHead.x = 0
-    else if (currentHead.x == -1 && currentDirection == West()) currentHead.x = 24
-    else if (currentHead.y == GameLogic.DefaultGridDims.height && currentDirection == South()) currentHead.y = 0
-    else if (currentHead.y == -1 && currentDirection == North()) currentHead.y = 24
+    emptySize = gridDims.width * gridDims.height - (bodyLength + 1)
+
+    if (bodyPoints.length < bodyLength) bodyPoints += currentHead.copy()
+    else {
+      for (i <- 0 until bodyLength - 1) {
+        bodyPoints(i) = bodyPoints(i + 1)
+      }
+      bodyPoints(bodyLength - 1) = currentHead.copy()
+    }
+
+
+
+    if (!appleOnBoard && (emptyPlaces.length == emptySize)) placeApple()
+    if (appleOnBoard && currentHead.x == applePoint.x && currentHead.y == applePoint.y) {
+      emptySize -= 3; bodyLength += 3
+      emptyPlaces = Vector[Point]()
+      appleOnBoard = false
+    }
+
+    currentHead.movePoint(currentDirection)
+    disableBorders()
+
   }
 
   // TODO implement me
@@ -37,11 +65,29 @@ class GameLogic(val random: RandomGenerator,
   // TODO implement me
   def getCellType(p : Point): CellType = {
 
-    if (currentHead.x == p.x && currentHead.y == p.y) p.cell = SnakeHead(currentDirection)
+    for (i <- bodyPoints.indices) {
+      if (bodyPoints(i).x == p.x && bodyPoints(i).y == p.y) p.cell = SnakeBody(1.0f)
+    }
 
-    getCell(p)
+    if (currentHead.x == p.x && currentHead.y == p.y) p.cell = SnakeHead(currentDirection)
+    else if (appleOnBoard && applePoint.x == p.x && applePoint.y == p.y) p.cell = Apple()
+    else if (p.cell == Empty() && emptyPlaces.length < emptySize) emptyPlaces = emptyPlaces :+ p
+
+    p.cell
   }
 
+  def disableBorders(): Unit ={
+    if (currentHead.x == gridDims.width && currentDirection == East()) currentHead.x = 0
+    else if (currentHead.x == -1 && currentDirection == West()) currentHead.x = gridDims.width-1
+    else if (currentHead.y == gridDims.height && currentDirection == South()) currentHead.y = 0
+    else if (currentHead.y == -1 && currentDirection == North()) currentHead.y = gridDims.height-1
+  }
+
+  def placeApple(): Unit = {
+    val randomNumber = random.randomInt(emptySize)
+    applePoint = emptyPlaces(randomNumber).copy()
+    appleOnBoard = true
+  }
 }
 
 /** GameLogic companion object */
@@ -65,8 +111,6 @@ object GameLogic {
   val DefaultGridDims
     : Dimensions =
     Dimensions(width = 25, height = 25)  // you can adjust these values to play on a different sized board
-
-
 
 }
 
