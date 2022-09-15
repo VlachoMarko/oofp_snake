@@ -13,6 +13,7 @@ class GameLogic(val random: RandomGenerator,
                 val gridDims : Dimensions) {
 
   var currentHead : Point = Point(2,0)
+
   //TODO: These can be under "currentHead" or in the new "Snake" class? Also with the apple shit..
   var bodyPoints: ArrayBuffer[Point] = new ArrayBuffer[Point]
   bodyPoints += Point(0,0); bodyPoints += Point(1,0)
@@ -27,42 +28,40 @@ class GameLogic(val random: RandomGenerator,
 
   def gameOver: Boolean = false
 
-  // TODO implement me
+  // TODO: The apple should be placed during the drawing of the board, so the point of the apple should already be calculated.
+  // TODO: Also, I have to keep track of the empty cells during the game somehow.
   def step(): Unit = {
 
     emptySize = gridDims.width * gridDims.height - (bodyLength + 1)
 
-    if (bodyPoints.length < bodyLength) bodyPoints += currentHead.copy()
-    else {
-      for (i <- 0 until bodyLength - 1) {
-        bodyPoints(i) = bodyPoints(i + 1)
-      }
-      bodyPoints(bodyLength - 1) = currentHead.copy()
-    }
-
-
-
-    if (!appleOnBoard && (emptyPlaces.length == emptySize)) placeApple()
     if (appleOnBoard && currentHead.x == applePoint.x && currentHead.y == applePoint.y) {
-      emptySize -= 3; bodyLength += 3
+      emptySize -= 3;
+      bodyLength += 3
       emptyPlaces = Vector[Point]()
       appleOnBoard = false
     }
 
-    currentHead.movePoint(currentDirection)
-    disableBorders()
-
+    if (appleOnBoard) {
+      if (bodyPoints.length < bodyLength) bodyPoints += currentHead.copy()
+        else {
+          for (i <- 0 until bodyLength - 1) {
+            bodyPoints(i) = bodyPoints(i + 1)
+          }
+          bodyPoints(bodyLength - 1) = currentHead.copy()
+        }
+        currentHead.movePoint(currentDirection)
+        disableBorders()
+      }
   }
 
   // TODO implement me
   def setReverse(r: Boolean): Unit = ()
 
-  // TODO implement me
+
   def changeDir(d: Direction): Unit = {
     currentDirection = d
   }
 
-  // TODO implement me
   def getCellType(p : Point): CellType = {
 
     for (i <- bodyPoints.indices) {
@@ -72,6 +71,8 @@ class GameLogic(val random: RandomGenerator,
     if (currentHead.x == p.x && currentHead.y == p.y) p.cell = SnakeHead(currentDirection)
     else if (appleOnBoard && applePoint.x == p.x && applePoint.y == p.y) p.cell = Apple()
     else if (p.cell == Empty() && emptyPlaces.length < emptySize) emptyPlaces = emptyPlaces :+ p
+
+    if (!appleOnBoard && (emptyPlaces.length == emptySize)) placeApple()
 
     p.cell
   }
@@ -84,9 +85,11 @@ class GameLogic(val random: RandomGenerator,
   }
 
   def placeApple(): Unit = {
-    val randomNumber = random.randomInt(emptySize)
+    val randomNumber = random.randomInt(upTo = emptySize)
     applePoint = emptyPlaces(randomNumber).copy()
     appleOnBoard = true
+
+    println("apple placed at: " + applePoint)
   }
 }
 
