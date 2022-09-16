@@ -18,7 +18,6 @@ case class Point(var x : Int, var y : Int) {
 
 object Point {
 
-
   def getMovements(d: Direction): (Int, Int) =
     d match {
       case East() => (1, 0)
