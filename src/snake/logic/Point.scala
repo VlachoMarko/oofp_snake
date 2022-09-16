@@ -7,6 +7,7 @@ import snake.logic.Point.getMovements
 
 case class Point(var x : Int, var y : Int) {
   var cell: CellType = Empty()
+
   def movePoint(d: Direction): Unit = {
     var movements: (Int, Int) = getMovements(d)
     this.x +=  movements._1

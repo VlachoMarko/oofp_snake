@@ -22,7 +22,7 @@ class GameLogic(val random: RandomGenerator,
   var currentHead : Point = snakePoints.last.copy()
 
   var changingDirection: Direction = East()
-  var applePoint : Point = Point(0,0)
+  var applePoint : Point = Point(-10,-10)
   var appleOnBoard: Boolean = false
   var emptySize : Int = gameRoom - snakeLength
   var emptyPlaces: Vector[Point] = Vector[Point]()
@@ -33,26 +33,32 @@ class GameLogic(val random: RandomGenerator,
   def step(): Unit = {
 
     val currentDirection = changingDirection
-    if (!gameOver) {
+    if (!gameOver && snakeLength <= gameRoom) {
 
       if (!appleOnBoard && emptyPlaces.isEmpty && !isBoardFilled) findEmptyPlaces()
       emptySize = gameRoom - snakePoints.length
 
 
-
-      if (snakePoints.length < snakeLength) snakePoints += currentHead.copy()
+      if (snakePoints.length < snakeLength) {println("the if, snakeLength " + snakeLength); snakePoints += currentHead.copy()}
       else {
         for (i <- 0 until snakePoints.length - 1) {
-          snakePoints(i) = snakePoints(i + 1)
+          snakePoints(i) = snakePoints(i+1)
+          println("new snakePoints: " + i + ". " + snakePoints(i))
         }
       }
       currentHead.movePoint(currentDirection)
-      println("head moves to: " + currentHead)
-      if (snakePoints.contains(currentHead)) {gameOver = true; return}
-      snakePoints(snakePoints.length - 1) = currentHead.copy()
       handleBorders(currentDirection)
+      println("head moves to: " + currentHead)
 
+      // Ifs checking for gameOver
+      if (snakePoints.contains(currentHead)) {
+        if (snakePoints.indexOf(currentHead) != 0 && snakePoints.indexOf(currentHead) != snakePoints.length-1){
+          println("index of failure: " + snakePoints.indexOf(currentHead))
+          gameOver = true; return
+        }
+      }
 
+      snakePoints(snakePoints.length - 1) = currentHead.copy()
 
       emptyPlaces = Vector[Point]()
 
@@ -63,6 +69,7 @@ class GameLogic(val random: RandomGenerator,
         appleOnBoard = false
       }
     }
+    else gameOver = true
   }
 
   // TODO implement me
@@ -77,9 +84,8 @@ class GameLogic(val random: RandomGenerator,
 
   def getCellType(p : Point): CellType = {
     if (!appleOnBoard && emptyPlaces.isEmpty && !isBoardFilled) findEmptyPlaces()
-    if (!gameOver) {
-      if (!appleOnBoard && !isBoardFilled) placeApple()
-    }
+    if (!appleOnBoard && !isBoardFilled) placeApple()
+
 
     for (i <- 0 until snakePoints.length-1) {
       if (snakePoints(i).x == p.x && snakePoints(i).y == p.y) p.cell = SnakeBody(1.0f)
@@ -100,7 +106,7 @@ class GameLogic(val random: RandomGenerator,
   }
 
   def isBoardFilled: Boolean = {
-    if (snakePoints.length == (gridDims.height * gridDims.width)) {
+    if (snakePoints.length >= gameRoom) {
       true
     }
     else false
@@ -146,7 +152,7 @@ object GameLogic {
   // do NOT use DefaultGridDims.width and DefaultGridDims.height
   val DefaultGridDims
     : Dimensions =
-    Dimensions(width = 3, height = 1)  // you can adjust these values to play on a different sized board
+    Dimensions(width = 10, height = 10)  // you can adjust these values to play on a different sized board
 
 }
 
