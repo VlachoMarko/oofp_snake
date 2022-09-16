@@ -12,6 +12,7 @@ import scala.collection.mutable.ArrayBuffer
 class GameLogic(val random: RandomGenerator,
                 val gridDims : Dimensions) {
 
+  val gameRoom: Int = gridDims.width * gridDims.height
 
 
   //TODO: These can be in the new "Snake" class? Also with the other shit
@@ -23,23 +24,18 @@ class GameLogic(val random: RandomGenerator,
   var currentDirection: Direction = East()
   var applePoint : Point = Point(0,0)
   var appleOnBoard: Boolean = false
-  var emptySize : Int = gridDims.width * gridDims.height - snakeLength
+  var emptySize : Int = gameRoom - snakeLength
   var emptyPlaces: Vector[Point] = Vector[Point]()
-
 
   var gameOver: Boolean = false
 
 
   // TODO: I have to keep track of the empty cells during the game.
   def step(): Unit = {
+
     if (!gameOver) {
       if (!appleOnBoard && emptyPlaces.isEmpty && !isBoardFilled) findEmptyPlaces()
-      emptySize = gridDims.width * gridDims.height - snakePoints.length
-
-      if (appleOnBoard && currentHead.x == applePoint.x && currentHead.y == applePoint.y) {
-        snakeLength += 3
-        appleOnBoard = false
-      }
+      emptySize = gameRoom - snakePoints.length
 
       if (snakePoints.length < snakeLength) snakePoints += currentHead.copy()
       else {
@@ -52,8 +48,14 @@ class GameLogic(val random: RandomGenerator,
       snakePoints(snakePoints.length - 1) = currentHead.copy()
       handleBorders()
 
-
       emptyPlaces = Vector[Point]()
+
+      if (currentHead.x == applePoint.x && currentHead.y == applePoint.y) {
+        snakeLength += 3
+        findEmptyPlaces()
+        if (snakePoints.length < gameRoom) placeApple()
+        appleOnBoard = false
+      }
     }
   }
 
@@ -62,12 +64,12 @@ class GameLogic(val random: RandomGenerator,
 
 
   def changeDir(d: Direction): Unit = {
-    currentDirection = d
+    val copyHead = currentHead.copy()
+    copyHead.movePoint(d)
+    if (!(currentDirection == d.opposite) && !(copyHead == snakePoints(snakePoints.length-2))) currentDirection = d
   }
 
   def getCellType(p : Point): CellType = {
-
-
     if (!appleOnBoard && emptyPlaces.isEmpty && !isBoardFilled) findEmptyPlaces()
 
     for (i <- 0 until snakePoints.length-1) {
