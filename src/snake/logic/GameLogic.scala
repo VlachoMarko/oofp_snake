@@ -15,13 +15,14 @@ class GameLogic(val random: RandomGenerator,
   val gameRoom: Int = gridDims.width * gridDims.height
 
 
-  //TODO: These can be in the new "Snake" class? Also with the other shit
+  //TODO: Create Snake class
   var snakePoints: ArrayBuffer[Point] = new ArrayBuffer[Point]
   snakePoints += Point(0,0); snakePoints += Point(1,0); snakePoints += Point(2,0)
   var snakeLength : Int = 3
   var currentHead : Point = snakePoints.last.copy()
 
   var changingDirection: Direction = East()
+  // Todo: Create apple class
   var applePoint : Point = Point(-10,-10)
   var appleOnBoard: Boolean = false
   var emptyPlaces: Vector[Point] = Vector[Point]()
