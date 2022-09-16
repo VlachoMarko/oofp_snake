@@ -71,6 +71,9 @@ class GameLogic(val random: RandomGenerator,
 
   def getCellType(p : Point): CellType = {
     if (!appleOnBoard && emptyPlaces.isEmpty && !isBoardFilled) findEmptyPlaces()
+    if (!gameOver) {
+      if (!appleOnBoard && !isBoardFilled) placeApple()
+    }
 
     for (i <- 0 until snakePoints.length-1) {
       if (snakePoints(i).x == p.x && snakePoints(i).y == p.y) p.cell = SnakeBody(1.0f)
@@ -79,9 +82,7 @@ class GameLogic(val random: RandomGenerator,
     if (currentHead.x == p.x && currentHead.y == p.y) p.cell = SnakeHead(currentDirection)
     else if (appleOnBoard && applePoint.x == p.x && applePoint.y == p.y) p.cell = Apple()
 
-    if (!gameOver){
-    if (!appleOnBoard && !isBoardFilled) placeApple()
-    }
+
     p.cell
   }
 
