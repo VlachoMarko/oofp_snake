@@ -21,7 +21,7 @@ class GameLogic(val random: RandomGenerator,
   var snakeLength : Int = 3
   var currentHead : Point = snakePoints.last.copy()
 
-  var currentDirection: Direction = East()
+  var changingDirection: Direction = East()
   var applePoint : Point = Point(0,0)
   var appleOnBoard: Boolean = false
   var emptySize : Int = gameRoom - snakeLength
@@ -30,12 +30,15 @@ class GameLogic(val random: RandomGenerator,
   var gameOver: Boolean = false
 
 
-  // TODO: I have to keep track of the empty cells during the game.
   def step(): Unit = {
 
+    val currentDirection = changingDirection
     if (!gameOver) {
+
       if (!appleOnBoard && emptyPlaces.isEmpty && !isBoardFilled) findEmptyPlaces()
       emptySize = gameRoom - snakePoints.length
+
+
 
       if (snakePoints.length < snakeLength) snakePoints += currentHead.copy()
       else {
@@ -44,9 +47,12 @@ class GameLogic(val random: RandomGenerator,
         }
       }
       currentHead.movePoint(currentDirection)
-      if (snakePoints.contains(currentHead)) gameOver = true
+      println("head moves to: " + currentHead)
+      if (snakePoints.contains(currentHead)) {gameOver = true; return}
       snakePoints(snakePoints.length - 1) = currentHead.copy()
-      handleBorders()
+      handleBorders(currentDirection)
+
+
 
       emptyPlaces = Vector[Point]()
 
@@ -66,7 +72,7 @@ class GameLogic(val random: RandomGenerator,
   def changeDir(d: Direction): Unit = {
     val copyHead = currentHead.copy()
     copyHead.movePoint(d)
-    if (!(currentDirection == d.opposite) && !(copyHead == snakePoints(snakePoints.length-2))) currentDirection = d
+    if (!(changingDirection == d.opposite) && !(copyHead == snakePoints(snakePoints.length-2))) changingDirection = d
   }
 
   def getCellType(p : Point): CellType = {
@@ -79,14 +85,14 @@ class GameLogic(val random: RandomGenerator,
       if (snakePoints(i).x == p.x && snakePoints(i).y == p.y) p.cell = SnakeBody(1.0f)
     }
 
-    if (currentHead.x == p.x && currentHead.y == p.y) p.cell = SnakeHead(currentDirection)
+    if (currentHead.x == p.x && currentHead.y == p.y) p.cell = SnakeHead(changingDirection)
     else if (appleOnBoard && applePoint.x == p.x && applePoint.y == p.y) p.cell = Apple()
 
 
     p.cell
   }
 
-  def handleBorders(): Unit ={
+  def handleBorders(currentDirection: Direction): Unit ={
     if (currentHead.x == gridDims.width && currentDirection == East()) currentHead.x = 0
     else if (currentHead.x == -1 && currentDirection == West()) {currentHead.x = gridDims.width-1; snakePoints(snakePoints.length-1) = currentHead.copy()}
     else if (currentHead.y == gridDims.height && currentDirection == South()) currentHead.y = 0
@@ -140,7 +146,7 @@ object GameLogic {
   // do NOT use DefaultGridDims.width and DefaultGridDims.height
   val DefaultGridDims
     : Dimensions =
-    Dimensions(width = 6, height = 1)  // you can adjust these values to play on a different sized board
+    Dimensions(width = 3, height = 1)  // you can adjust these values to play on a different sized board
 
 }
 
