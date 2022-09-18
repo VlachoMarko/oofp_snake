@@ -2,8 +2,6 @@ package snake.logic
 
 import engine.random.RandomGenerator
 
-import scala.collection.mutable.ArrayBuffer
-
 /** To implement Snake, complete the ``TODOs`` below.
  *
  * If you need additional files,
@@ -13,59 +11,22 @@ class GameLogic(val random: RandomGenerator,
                 val gridDims : Dimensions) {
 
   val gameRoom: Int = gridDims.width * gridDims.height
-
-
-  //TODO: Create Snake class
-  var snakePoints: ArrayBuffer[Point] = new ArrayBuffer[Point]
-  snakePoints += Point(0,0); snakePoints += Point(1,0); snakePoints += Point(2,0)
-  var snakeLength : Int = 3
-  var currentHead : Point = snakePoints.last.copy()
-
-  var changingDirection: Direction = East()
-  // Todo: Create apple class
-  var applePoint : Point = Point(-10,-10)
-  var appleOnBoard: Boolean = false
-  var emptyPlaces: Vector[Point] = Vector[Point]()
-
   var gameOver: Boolean = false
 
+  var snake : Snake = new Snake()
+  var changingDirection: Direction = East()
 
   def step(): Unit = {
 
     val currentDirection = changingDirection
-    if (!gameOver && snakeLength <= gameRoom) {
 
-      if (!appleOnBoard && emptyPlaces.isEmpty && !isBoardFilled) findEmptyPlaces()
+    if (!gameOver && snake.snakeLength <= gameRoom) {
 
-      if (snakePoints.length < snakeLength) snakePoints += currentHead.copy()
-      else {
-        for (i <- 0 until snakePoints.length - 1) {
-          snakePoints(i) = snakePoints(i+1)
-          // println("new snakePoints: " + i + ". " + snakePoints(i))
-        }
-      }
-      currentHead.movePoint(currentDirection)
-      handleBorders(currentDirection)
-      // println("head moves to: " + currentHead)
+      moveSnake(currentDirection)
+      checkForEatenApple()
+      gameOver = isGameOver
 
-      if (snakePoints.contains(currentHead)) {
-        if (snakePoints.indexOf(currentHead) != 0 && snakePoints.indexOf(currentHead) != snakePoints.length-1){
-          println("index of failure: " + snakePoints.indexOf(currentHead))
-          gameOver = true; return
-        }
-      }
-
-      snakePoints(snakePoints.length - 1) = currentHead.copy()
-      emptyPlaces = Vector[Point]()
-
-      if (currentHead.x == applePoint.x && currentHead.y == applePoint.y) {
-        snakeLength += 3
-        findEmptyPlaces()
-        if (snakePoints.length < gameRoom) placeApple()
-        appleOnBoard = false
-      }
-  }
-  else gameOver = true
+    } else gameOver = true
   }
 
   // TODO implement me
@@ -73,36 +34,67 @@ class GameLogic(val random: RandomGenerator,
 
 
   def changeDir(d: Direction): Unit = {
-    val copyHead = currentHead.copy()
+    val copyHead = snake.HeadPoint.copy()
     copyHead.movePoint(d)
-    if (!(changingDirection == d.opposite) && !(copyHead == snakePoints(snakePoints.length-2))) changingDirection = d
+    if (!(changingDirection == d.opposite) && !(copyHead == snake.snakePoints(snake.snakePoints.length-2))) changingDirection = d
   }
 
   def getCellType(p : Point): CellType = {
-    if (!appleOnBoard && emptyPlaces.isEmpty && !isBoardFilled) findEmptyPlaces()
-    if (!appleOnBoard && !isBoardFilled) placeApple()
+    if (!snake.appleOnBoard && snake.emptyPoints.isEmpty && !isBoardFilled) findEmptyPlaces()
+    if (!snake.appleOnBoard && !isBoardFilled) placeApple()
 
-
-    for (i <- 0 until snakePoints.length-1) {
-      if (snakePoints(i).x == p.x && snakePoints(i).y == p.y) p.cell = SnakeBody(1.0f)
+    for (i <- 0 until snake.snakePoints.length-1) {
+      if (snake.snakePoints(i).x == p.x && snake.snakePoints(i).y == p.y) p.cell = SnakeBody(1.0f)
     }
 
-    if (currentHead.x == p.x && currentHead.y == p.y) p.cell = SnakeHead(changingDirection)
-    else if (appleOnBoard && applePoint.x == p.x && applePoint.y == p.y) p.cell = Apple()
-
+    if (snake.HeadPoint.x == p.x && snake.HeadPoint.y == p.y) p.cell = SnakeHead(changingDirection)
+    else if (snake.appleOnBoard && snake.applePoint.x == p.x && snake.applePoint.y == p.y) p.cell = Apple()
 
     p.cell
   }
 
+  def moveSnake(currentDirection: Direction): Unit = {
+    if (snake.snakePoints.length < snake.snakeLength) snake.snakePoints += snake.HeadPoint.copy()
+    else {
+      for (i <- 0 until snake.snakePoints.length - 1) {
+        snake.snakePoints(i) = snake.snakePoints(i + 1)
+      }
+    }
+    snake.HeadPoint.movePoint(currentDirection)
+    handleBorders(currentDirection)
+    snake.snakePoints(snake.snakePoints.length - 1) = snake.HeadPoint.copy()
+    snake.emptyPoints = Vector[Point]()
+
+  }
+
+  def checkForEatenApple(): Unit = {
+    if (snake.HeadPoint.x == snake.applePoint.x && snake.HeadPoint.y == snake.applePoint.y) {
+      snake.snakeLength += 3
+      findEmptyPlaces()
+      if (snake.snakePoints.length < gameRoom) placeApple()
+      snake.appleOnBoard = false
+    }
+  }
+
+  def isGameOver: Boolean = {
+    if (snake.snakePoints.contains(snake.HeadPoint)) {
+      if (snake.snakePoints.indexOf(snake.HeadPoint) != 0 && snake.snakePoints.indexOf(snake.HeadPoint) != snake.snakePoints.length - 1) {
+        println("index of failure: " + snake.snakePoints.indexOf(snake.HeadPoint))
+        return true
+      }
+    }
+    false
+  }
+
   def handleBorders(currentDirection: Direction): Unit ={
-    if (currentHead.x == gridDims.width && currentDirection == East()) currentHead.x = 0
-    else if (currentHead.x == -1 && currentDirection == West()) {currentHead.x = gridDims.width-1; snakePoints(snakePoints.length-1) = currentHead.copy()}
-    else if (currentHead.y == gridDims.height && currentDirection == South()) currentHead.y = 0
-    else if (currentHead.y == -1 && currentDirection == North()) currentHead.y = gridDims.height-1; snakePoints(snakePoints.length-1) = currentHead.copy()
+    if (snake.HeadPoint.x == gridDims.width && currentDirection == East()) snake.HeadPoint.x = 0
+    else if (snake.HeadPoint.x == -1 && currentDirection == West()) {snake.HeadPoint.x = gridDims.width-1; snake.snakePoints(snake.snakePoints.length-1) = snake.HeadPoint.copy()}
+    else if (snake.HeadPoint.y == gridDims.height && currentDirection == South()) snake.HeadPoint.y = 0
+    else if (snake.HeadPoint.y == -1 && currentDirection == North()) snake.HeadPoint.y = gridDims.height-1; snake.snakePoints(snake.snakePoints.length-1) = snake.HeadPoint.copy()
   }
 
   def isBoardFilled: Boolean = {
-    if (snakePoints.length >= gameRoom) {
+    if (snake.snakePoints.length >= gameRoom) {
       true
     }
     else false
@@ -110,20 +102,20 @@ class GameLogic(val random: RandomGenerator,
   def findEmptyPlaces(): Unit = {
     for (y <- 0 until gridDims.height) {
       for (x <- 0 until gridDims.width)
-        if (!snakePoints.contains(Point(x,y))) {
-          assert(!emptyPlaces.contains(Point(x,y)))
-          emptyPlaces = emptyPlaces :+ Point(x, y)
+        if (!snake.snakePoints.contains(Point(x,y))) {
+          assert(!snake.emptyPoints.contains(Point(x,y)))
+          snake.emptyPoints = snake.emptyPoints :+ Point(x, y)
           }
       }
    }
 
   // TODO: The apple should be placed during the drawing of the board, so the point of the apple should already be calculated.
   def placeApple(): Unit = {
-    val randomNumber = random.randomInt(upTo = emptyPlaces.length)
-    applePoint = emptyPlaces(randomNumber).copy()
-    appleOnBoard = true
+    val randomNumber = random.randomInt(upTo = snake.emptyPoints.length)
+    snake.applePoint = snake.emptyPoints(randomNumber).copy()
+    snake.appleOnBoard = true
 
-    println("apple placed at: " + applePoint)
+    println("apple placed at: " + snake.applePoint)
   }
 }
 

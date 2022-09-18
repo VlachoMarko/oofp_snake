@@ -1,7 +1,6 @@
 package snake.logic
 
 import snake.logic.Point.getMovements
-
 // you can alter this file!
 
 
