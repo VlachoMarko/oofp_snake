@@ -30,8 +30,8 @@ class GameLogic(val random: RandomGenerator,
     if (!gameOver && snake.changingSnakeLength <= gameState.gameRoom) {
 
       if (!reverseMode) {
-        snake.snakePoints = moveSnake(snake.snakePoints)
         snake.headPoint = moveHead(snake.headPoint, currentDirection)
+        snake.snakePoints = moveSnake(snake.snakePoints)
         gameState.emptyPoints = getEmptyPoints(snake.snakePoints)
         checkForEatenApple()
         gameOver = isGameOver(snake.snakePoints, snake.headPoint)
@@ -39,10 +39,10 @@ class GameLogic(val random: RandomGenerator,
         stateStorage.last.snake.snakePoints = gameState.snake.snakePoints.clone()*/
       } else {
         /*println("reverse mode, at step: " + currentStep)
-        println("number of states: " + stateStorage.size)*/
+        println("number of states: " + stateStorage.size)
         for (i <- stateStorage.indices) {
           println(stateStorage(i).snake.snakePoints)
-        }
+        }*/
       }
 
     } else gameOver = true
@@ -77,21 +77,22 @@ class GameLogic(val random: RandomGenerator,
     p.cell
   }
 
-  def moveSnake(snakePoints: ArrayBuffer[Point]): ArrayBuffer[Point] = {
-    if (snakePoints.length < snake.changingSnakeLength) snakePoints += snake.headPoint.copy()
+  def moveSnake(snakePoints: Vector[Point]): Vector[Point] = {
+    var tempVector: Vector[Point] = snakePoints
+    if (snakePoints.length < snake.changingSnakeLength) tempVector = tempVector :+ snake.headPoint.copy()
     else {
+      tempVector = Vector[Point]()
       for (i <- 0 until snakePoints.length - 1) {
-        snakePoints(i) = snakePoints(i + 1)
+        tempVector = tempVector :+ snakePoints(i + 1)
       }
+      tempVector = tempVector :+ snake.headPoint.copy()
     }
-    snakePoints
+    tempVector
   }
   def moveHead(headPoint : Point, currDir: Direction): Point = {
     var tempHead = headPoint
     tempHead.movePoint(currDir)
     tempHead = handleBorders(tempHead, currDir)
-
-    snake.snakePoints(snake.snakePoints.length - 1) = tempHead.copy()
     tempHead
   }
 
@@ -102,7 +103,7 @@ class GameLogic(val random: RandomGenerator,
     }
   }
 
-  def isGameOver(snakePoints : ArrayBuffer[Point], newHead : Point): Boolean = {
+  def isGameOver(snakePoints : Vector[Point], newHead : Point): Boolean = {
     if (snakePoints.contains(newHead)) {
       if (isCollision(snakePoints, newHead)) {
         return true
@@ -111,7 +112,7 @@ class GameLogic(val random: RandomGenerator,
     false
   }
 
-  def isCollision(snakePoints : ArrayBuffer[Point], newHead: Point): Boolean = {
+  def isCollision(snakePoints : Vector[Point], newHead: Point): Boolean = {
     snakePoints.indexOf(newHead) != 0 && snakePoints.indexOf(newHead) != snakePoints.length - 1
   }
 
@@ -125,7 +126,7 @@ class GameLogic(val random: RandomGenerator,
 
   def isBoardFilled: Boolean = snake.snakePoints.length >= gameState.gameRoom
 
-  def getEmptyPoints(snakePoints : ArrayBuffer[Point]): Vector[Point] = {
+  def getEmptyPoints(snakePoints : Vector[Point]): Vector[Point] = {
     var emptyPoints : Vector[Point] = Vector[Point]()
     for (y <- 0 until gridDims.height) {
       for (x <- 0 until gridDims.width)
@@ -151,7 +152,7 @@ class GameLogic(val random: RandomGenerator,
 /** GameLogic companion object */
 object GameLogic {
 
-  val FramesPerSecond: Int = 1 // change this to increase/decrease speed of game
+  val FramesPerSecond: Int = 2 // change this to increase/decrease speed of game
 
   val DrawSizeFactor = 1.0 // increase this to make the game bigger (for high-res screens)
   // or decrease to make game smaller
@@ -168,7 +169,7 @@ object GameLogic {
   // do NOT use DefaultGridDims.width and DefaultGridDims.height
   val DefaultGridDims
     : Dimensions =
-    Dimensions(width = 3, height = 1)  // you can adjust these values to play on a different sized board
+    Dimensions(width = 15, height = 15)  // you can adjust these values to play on a different sized board
 
 }
 
