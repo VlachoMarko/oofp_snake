@@ -11,29 +11,56 @@ import scala.collection.mutable.ArrayBuffer
 class GameLogic(val random: RandomGenerator,
                 val gridDims : Dimensions) {
 
-  var gameState: GameState = new GameState(gridDims)
+
+  var gameState: GameState = GameState(gridDims)
   var snake : Snake = gameState.snake
   var gameOver: Boolean = false
+  var reverseMode: Boolean = false
+  var stateStorage : Vector[GameState] = Vector[GameState](gameState.copy())
+
+  var currentStep : Int = 0
 
   if (!isBoardFilled) gameState.emptyPoints = getEmptyPoints(snake.snakePoints); gameState.applePoint = getApplePoint(gameState.emptyPoints)
   def step(): Unit = {
 
+    currentStep += 1
     val currentDirection = gameState.changingDirection
 
+
     if (!gameOver && snake.changingSnakeLength <= gameState.gameRoom) {
-      snake.snakePoints = moveSnake(snake.snakePoints)
-      snake.headPoint = moveHead(snake.headPoint, currentDirection)
-      gameState.emptyPoints = getEmptyPoints(snake.snakePoints)
-      checkForEatenApple()
-      gameOver = isGameOver(snake.snakePoints, snake.headPoint)
+
+      if (!reverseMode) {
+        snake.snakePoints = moveSnake(snake.snakePoints)
+        snake.headPoint = moveHead(snake.headPoint, currentDirection)
+        gameState.emptyPoints = getEmptyPoints(snake.snakePoints)
+        checkForEatenApple()
+        gameOver = isGameOver(snake.snakePoints, snake.headPoint)
+        /*stateStorage = stateStorage :+ gameState.copy()
+        stateStorage.last.snake.snakePoints = gameState.snake.snakePoints.clone()*/
+      } else {
+        /*println("reverse mode, at step: " + currentStep)
+        println("number of states: " + stateStorage.size)*/
+        for (i <- stateStorage.indices) {
+          println(stateStorage(i).snake.snakePoints)
+        }
+      }
 
     } else gameOver = true
+
+    if (reverseMode) reverseActions()
   }
 
   // TODO implement me
-  def setReverse(r: Boolean): Unit = ()
+  def setReverse(r: Boolean): Unit = {
+    reverseMode = r
+  }
 
-
+  def reverseActions() : Unit = {
+    if (stateStorage.size > 1) stateStorage =  stateStorage.slice(0, stateStorage.size-1)
+    gameOver = false
+    gameState = stateStorage.last
+    snake = gameState.snake
+  }
   def changeDir(d: Direction): Unit = {
     val testHead = snake.headPoint.copy()
     testHead.movePoint(d)
