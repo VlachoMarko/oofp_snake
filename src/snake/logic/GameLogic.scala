@@ -1,6 +1,7 @@
 package snake.logic
 
 import engine.random.RandomGenerator
+import scala.collection.mutable.ArrayBuffer
 
 /** To implement Snake, complete the ``TODOs`` below.
  *
@@ -14,19 +15,18 @@ class GameLogic(val random: RandomGenerator,
   var snake : Snake = gameState.snake
   var gameOver: Boolean = false
 
-  if (snake.snakePoints.length < gameState.gameRoom) findEmptyPlaces(); placeApple()
-  var stepsTaken: Int = 0
+  if (!isBoardFilled) gameState.emptyPoints = getEmptyPoints(snake.snakePoints); gameState.applePoint = getApplePoint(gameState.emptyPoints)
   def step(): Unit = {
-    stepsTaken += 1
-    println("step: " + stepsTaken)
 
     val currentDirection = gameState.changingDirection
 
     if (!gameOver && snake.changingSnakeLength <= gameState.gameRoom) {
-      moveSnake(currentDirection)
-      findEmptyPlaces()
+      snake.snakePoints = moveSnake(snake.snakePoints)
+      snake.headPoint = moveHead(snake.headPoint, currentDirection)
+      gameState.emptyPoints = getEmptyPoints(snake.snakePoints)
       checkForEatenApple()
-      gameOver = isGameOver
+      gameOver = isGameOver(snake.snakePoints, snake.headPoint)
+
     } else gameOver = true
   }
 
@@ -35,76 +35,88 @@ class GameLogic(val random: RandomGenerator,
 
 
   def changeDir(d: Direction): Unit = {
-    val newTestHead = snake.HeadPoint.copy()
-    newTestHead.movePoint(d)
-    if (!(gameState.changingDirection == d.opposite) && !(newTestHead == snake.startOfSnakeBody)) gameState.changingDirection = d
+    val testHead = snake.headPoint.copy()
+    testHead.movePoint(d)
+    if (isNotDirectionCollision(d, testHead)) gameState.changingDirection = d
   }
+
+  def isNotDirectionCollision(d : Direction, testHead : Point) : Boolean = gameState.changingDirection != d.opposite && testHead != snake.startOfSnakeBody
 
   def getCellType(p : Point): CellType = {
     if (snake.snakePoints.contains(p)) p.cell = SnakeBody(1.0f)
-    if (snake.HeadPoint == p) p.cell = SnakeHead(gameState.changingDirection)
+    if (snake.snakePoints.last == p) p.cell = SnakeHead(gameState.changingDirection)
     else if (gameState.applePoint == p) p.cell = Apple()
 
     p.cell
   }
 
-  def moveSnake(currentDirection: Direction): Unit = {
-    if (snake.snakePoints.length < snake.changingSnakeLength) snake.snakePoints += snake.HeadPoint.copy()
+  def moveSnake(snakePoints: ArrayBuffer[Point]): ArrayBuffer[Point] = {
+    if (snakePoints.length < snake.changingSnakeLength) snakePoints += snake.headPoint.copy()
     else {
-      for (i <- 0 until snake.snakePoints.length - 1) {
-        snake.snakePoints(i) = snake.snakePoints(i + 1)
+      for (i <- 0 until snakePoints.length - 1) {
+        snakePoints(i) = snakePoints(i + 1)
       }
     }
-    snake.HeadPoint.movePoint(currentDirection)
-    handleBorders(currentDirection)
-    snake.snakePoints(snake.snakePoints.length - 1) = snake.HeadPoint.copy()
-    gameState.emptyPoints = Vector[Point]()
+    snakePoints
+  }
+  def moveHead(headPoint : Point, currDir: Direction): Point = {
+    var tempHead = headPoint
+    tempHead.movePoint(currDir)
+    tempHead = handleBorders(tempHead, currDir)
+
+    snake.snakePoints(snake.snakePoints.length - 1) = tempHead.copy()
+    tempHead
   }
 
   def checkForEatenApple(): Unit = {
-    if (snake.HeadPoint == gameState.applePoint) {
+    if (snake.headPoint == gameState.applePoint) {
       snake.changingSnakeLength += 3
-      if (snake.snakePoints.length < gameState.gameRoom) placeApple()
+      if (snake.snakePoints.length < gameState.gameRoom) gameState.applePoint = getApplePoint(gameState.emptyPoints)
     }
   }
 
-  def isGameOver: Boolean = {
-    if (snake.snakePoints.contains(snake.HeadPoint)) {
-      if (snake.snakePoints.indexOf(snake.HeadPoint) != 0 && snake.snakePoints.indexOf(snake.HeadPoint) != snake.snakePoints.length - 1) {
-        println("index of failure: " + snake.snakePoints.indexOf(snake.HeadPoint))
+  def isGameOver(snakePoints : ArrayBuffer[Point], newHead : Point): Boolean = {
+    if (snakePoints.contains(newHead)) {
+      if (isCollision(snakePoints, newHead)) {
         return true
       }
     }
     false
   }
 
-  def handleBorders(currentDirection: Direction): Unit ={
-    if (snake.HeadPoint.x == gridDims.width && currentDirection == East()) snake.HeadPoint.x = 0
-    else if (snake.HeadPoint.x == -1 && currentDirection == West()) {snake.HeadPoint.x = gridDims.width-1; snake.snakePoints(snake.snakePoints.length-1) = snake.HeadPoint.copy()}
-    else if (snake.HeadPoint.y == gridDims.height && currentDirection == South()) snake.HeadPoint.y = 0
-    else if (snake.HeadPoint.y == -1 && currentDirection == North()) snake.HeadPoint.y = gridDims.height-1; snake.snakePoints(snake.snakePoints.length-1) = snake.HeadPoint.copy()
+  def isCollision(snakePoints : ArrayBuffer[Point], newHead: Point): Boolean = {
+    snakePoints.indexOf(newHead) != 0 && snakePoints.indexOf(newHead) != snakePoints.length - 1
+  }
+
+  def handleBorders(headPoint : Point, currDir: Direction): Point ={
+    if      (headPoint.x == gridDims.width && currDir == East())   Point(0, headPoint.y)
+    else if (headPoint.x == -1 && currDir == West())               Point(gridDims.width-1, headPoint.y)
+    else if (headPoint.y == gridDims.height && currDir == South()) Point(headPoint.x, 0)
+    else if (headPoint.y == -1 && currDir == North())              Point(headPoint.x, gridDims.height-1)
+    else headPoint
   }
 
   def isBoardFilled: Boolean = snake.snakePoints.length >= gameState.gameRoom
 
-  def findEmptyPlaces(): Unit = {
+  def getEmptyPoints(snakePoints : ArrayBuffer[Point]): Vector[Point] = {
+    var emptyPoints : Vector[Point] = Vector[Point]()
     for (y <- 0 until gridDims.height) {
       for (x <- 0 until gridDims.width)
-        if (!snake.snakePoints.contains(Point(x,y))) {
-          // assert(!gameState.emptyPoints.contains(Point(x,y)))
-          gameState.emptyPoints = gameState.emptyPoints :+ Point(x, y)
+        if (!snakePoints.contains(Point(x,y))) {
+          emptyPoints = emptyPoints :+ Point(x, y)
           }
       }
+    emptyPoints
    }
 
-  def placeApple(): Unit = {
-    if (gameState.emptyPoints.nonEmpty){
-      val randomNumber = random.randomInt(gameState.emptyPoints.length)
-      gameState.applePoint = gameState.emptyPoints(randomNumber).copy()
+  def getApplePoint(emptyPoints : Vector[Point]): Point = {
+    var applePoint : Point = Point(-10, -10)
+    if (emptyPoints.nonEmpty){
+      val randomNumber = random.randomInt(emptyPoints.length)
+      applePoint = emptyPoints(randomNumber).copy()
+      applePoint
     }
-
-
-    // println("apple placed at: " + gameState.applePoint)
+    else applePoint
   }
 }
 
