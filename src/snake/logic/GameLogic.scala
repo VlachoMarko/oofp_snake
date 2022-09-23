@@ -1,7 +1,6 @@
 package snake.logic
 
 import engine.random.RandomGenerator
-import scala.collection.mutable.ArrayBuffer
 
 /** To implement Snake, complete the ``TODOs`` below.
  *
@@ -15,8 +14,8 @@ class GameLogic(val random: RandomGenerator,
   var gameState: GameState = GameState(gridDims)
   var snake : Snake = gameState.snake
   var gameOver: Boolean = false
-  var reverseMode: Boolean = false
-  var stateStorage : Vector[GameState] = Vector[GameState](gameState.copy())
+  var reverseModeChanging: Boolean = false
+  var stateStorage : StateStorage = new StateStorage(gameState)
 
   var currentStep : Int = 0
 
@@ -25,7 +24,7 @@ class GameLogic(val random: RandomGenerator,
 
     currentStep += 1
     val currentDirection = gameState.changingDirection
-
+    val reverseMode: Boolean = reverseModeChanging
 
     if (!gameOver && snake.changingSnakeLength <= gameState.gameRoom) {
 
@@ -35,32 +34,52 @@ class GameLogic(val random: RandomGenerator,
         gameState.emptyPoints = getEmptyPoints(snake.snakePoints)
         checkForEatenApple()
         gameOver = isGameOver(snake.snakePoints, snake.headPoint)
-        /*stateStorage = stateStorage :+ gameState.copy()
-        stateStorage.last.snake.snakePoints = gameState.snake.snakePoints.clone()*/
+        stateStorage.addSnakePoints(gameState)
+        stateStorage.addSnakeSize(gameState)
+
       } else {
-        /*println("reverse mode, at step: " + currentStep)
-        println("number of states: " + stateStorage.size)
-        for (i <- stateStorage.indices) {
-          println(stateStorage(i).snake.snakePoints)
-        }*/
+        println("step: " + currentStep)
+        println("number of states: " + stateStorage.storedSnakeSizes.size)
+        for (i <- stateStorage.storedSnakePoints.indices) {
+          println(stateStorage.storedSnakePoints(i))
+        }
+        for (i <- stateStorage.storedSnakeSizes.indices){
+          println(stateStorage.storedSnakeSizes(i))
+        }
       }
 
     } else gameOver = true
 
-    if (reverseMode) reverseActions()
+    if (reverseMode){ println("reverse mode on"); snake.snakePoints = reverseActions()}
   }
 
-  // TODO implement me
   def setReverse(r: Boolean): Unit = {
-    reverseMode = r
+    reverseModeChanging = r
   }
 
-  def reverseActions() : Unit = {
-    if (stateStorage.size > 1) stateStorage =  stateStorage.slice(0, stateStorage.size-1)
+  def reverseActions(): Vector[Point] = {
+    var sliceIndex: Int = 0
+    if (stateStorage.storedSnakeSizes.length > 1) {
+      stateStorage.storedSnakeSizes = stateStorage.storedSnakeSizes.slice(0, stateStorage.storedSnakeSizes.length-1)
+    }
+    for (i <- stateStorage.storedSnakeSizes.indices) {
+      sliceIndex += stateStorage.storedSnakeSizes(i)
+    }
+
     gameOver = false
-    gameState = stateStorage.last
-    snake = gameState.snake
+    println("sliceindex:" + sliceIndex)
+    stateStorage.storedSnakePoints = stateStorage.storedSnakePoints.slice(0, sliceIndex)
+
+    var tempVector: Vector[Point] = Vector[Point]()
+    for (i <- (stateStorage.storedSnakePoints.length - stateStorage.storedSnakeSizes.last) until stateStorage.storedSnakePoints.length) {
+      tempVector = tempVector :+ stateStorage.storedSnakePoints(i)
+    }
+
+    println("reverseAction tempVector: " + tempVector)
+    tempVector
+
   }
+
   def changeDir(d: Direction): Unit = {
     val testHead = snake.headPoint.copy()
     testHead.movePoint(d)
