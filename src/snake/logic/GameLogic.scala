@@ -14,6 +14,7 @@ class GameLogic(val random: RandomGenerator,
   var gameState: GameState = GameState(gridDims)
   var snake : Snake = gameState.snake
   var gameOver: Boolean = false
+  var changingDirection: Direction = East()
   var reverseModeChanging: Boolean = false
   var stateStorage : StateStorage = new StateStorage(gameState)
 
@@ -23,52 +24,75 @@ class GameLogic(val random: RandomGenerator,
   def step(): Unit = {
 
     currentStep += 1
-    val currentDirection = gameState.changingDirection
+    println("step: " + currentStep)
+    gameState.currentDirection = changingDirection
     val reverseMode: Boolean = reverseModeChanging
+
+    // println("snake points: " + snake.snakePoints)
+
+    if (reverseMode) {
+      println("reverse mode on")
+      snake.snakePoints = getPreviousSnake
+      snake.headPoint = snake.snakePoints(snake.snakePoints.length-1)
+      gameState.currentDirection = getPreviousDirection
+      changingDirection = gameState.currentDirection
+      gameOver = false
+    }
+    else {
+      val testHead: Point = moveHead(snake.headPoint, gameState.currentDirection)
+      gameOver = isGameOver(snake.snakePoints, testHead)
+    }
+
+    println("game over: " + gameOver)
+
+
 
     if (!gameOver && snake.changingSnakeLength <= gameState.gameRoom) {
 
       if (!reverseMode) {
-        snake.headPoint = moveHead(snake.headPoint, currentDirection)
+        snake.headPoint = moveHead(snake.headPoint, gameState.currentDirection)
         snake.snakePoints = moveSnake(snake.snakePoints)
         gameState.emptyPoints = getEmptyPoints(snake.snakePoints)
         checkForEatenApple()
-        gameOver = isGameOver(snake.snakePoints, snake.headPoint)
         stateStorage.addSnakePoints(gameState)
         stateStorage.addSnakeSize(gameState)
+        stateStorage.addSnakeDirection(gameState)
 
       } else {
-        println("step: " + currentStep)
+        /*println("step: " + currentStep)
         println("number of states: " + stateStorage.storedSnakeSizes.size)
         for (i <- stateStorage.storedSnakePoints.indices) {
           println(stateStorage.storedSnakePoints(i))
         }
         for (i <- stateStorage.storedSnakeSizes.indices){
           println(stateStorage.storedSnakeSizes(i))
-        }
+        }*/
       }
+    }
 
-    } else gameOver = true
-
-    if (reverseMode){ println("reverse mode on"); snake.snakePoints = reverseActions()}
   }
+
+
 
   def setReverse(r: Boolean): Unit = {
     reverseModeChanging = r
   }
 
-  def reverseActions(): Vector[Point] = {
+  def getPreviousSnake: Vector[Point] = {
     var sliceIndex: Int = 0
-    if (stateStorage.storedSnakeSizes.length > 1) {
-      stateStorage.storedSnakeSizes = stateStorage.storedSnakeSizes.slice(0, stateStorage.storedSnakeSizes.length-1)
-    }
-    for (i <- stateStorage.storedSnakeSizes.indices) {
-      sliceIndex += stateStorage.storedSnakeSizes(i)
-    }
 
-    gameOver = false
-    println("sliceindex:" + sliceIndex)
-    stateStorage.storedSnakePoints = stateStorage.storedSnakePoints.slice(0, sliceIndex)
+    println("reverseA gameOver: " + gameOver)
+
+    if (stateStorage.storedSnakeSizes.length > 1 && !gameOver) {
+      stateStorage.storedSnakeSizes = stateStorage.storedSnakeSizes.slice(0, stateStorage.storedSnakeSizes.length-1)
+      println("stored snakeSizes: " + stateStorage.storedSnakeSizes)
+      for (i <- stateStorage.storedSnakeSizes.indices) {
+        sliceIndex += stateStorage.storedSnakeSizes(i)
+      }
+
+      stateStorage.storedSnakePoints = stateStorage.storedSnakePoints.slice(0, sliceIndex)
+      println("stored snakePoints: " + stateStorage.storedSnakePoints)
+    }
 
     var tempVector: Vector[Point] = Vector[Point]()
     for (i <- (stateStorage.storedSnakePoints.length - stateStorage.storedSnakeSizes.last) until stateStorage.storedSnakePoints.length) {
@@ -80,17 +104,23 @@ class GameLogic(val random: RandomGenerator,
 
   }
 
+  def getPreviousDirection : Direction = {
+    val tempDirection : Direction = stateStorage.storedSnakeDirections.last
+    stateStorage.storedSnakeDirections = stateStorage.storedSnakeDirections.slice(0, stateStorage.storedSnakeDirections.length-1)
+    tempDirection
+  }
+
   def changeDir(d: Direction): Unit = {
     val testHead = snake.headPoint.copy()
     testHead.movePoint(d)
-    if (isNotDirectionCollision(d, testHead)) gameState.changingDirection = d
+    if (isNotDirectionCollision(d, testHead)) changingDirection = d
   }
 
-  def isNotDirectionCollision(d : Direction, testHead : Point) : Boolean = gameState.changingDirection != d.opposite && testHead != snake.startOfSnakeBody
+  def isNotDirectionCollision(d : Direction, testHead : Point) : Boolean = changingDirection != d.opposite && testHead != snake.startOfSnakeBody
 
   def getCellType(p : Point): CellType = {
     if (snake.snakePoints.contains(p)) p.cell = SnakeBody(1.0f)
-    if (snake.snakePoints.last == p) p.cell = SnakeHead(gameState.changingDirection)
+    if (snake.snakePoints.last == p) p.cell = SnakeHead(changingDirection)
     else if (gameState.applePoint == p) p.cell = Apple()
 
     p.cell
@@ -109,7 +139,7 @@ class GameLogic(val random: RandomGenerator,
     tempVector
   }
   def moveHead(headPoint : Point, currDir: Direction): Point = {
-    var tempHead = headPoint
+    var tempHead = headPoint.copy()
     tempHead.movePoint(currDir)
     tempHead = handleBorders(tempHead, currDir)
     tempHead
@@ -123,16 +153,21 @@ class GameLogic(val random: RandomGenerator,
   }
 
   def isGameOver(snakePoints : Vector[Point], newHead : Point): Boolean = {
-    if (snakePoints.contains(newHead)) {
-      if (isCollision(snakePoints, newHead)) {
+    var testVector : Vector[Point] = snakePoints
+    testVector = moveSnake(testVector)
+    if (testVector.contains(newHead)) {
+      println("contains newHead")
+      if (!noCollision(testVector, newHead)) {
         return true
       }
     }
     false
   }
 
-  def isCollision(snakePoints : Vector[Point], newHead: Point): Boolean = {
-    snakePoints.indexOf(newHead) != 0 && snakePoints.indexOf(newHead) != snakePoints.length - 1
+  def noCollision(testVector : Vector[Point], newHead: Point): Boolean = {
+    // if (snake.changingSnakeLength > snakePoints.length) testVector = snake.snakePoints :+ newHead.copy()
+    println("index of newhead: " + testVector.indexOf(newHead))
+    testVector.indexOf(newHead) == testVector.length-1
   }
 
   def handleBorders(headPoint : Point, currDir: Direction): Point ={
